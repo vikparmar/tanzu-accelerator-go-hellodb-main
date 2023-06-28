@@ -1,0 +1,75 @@
+accelerator:
+  displayName: tanzu-go-hellodb
+  description: This accelerator provides a web service that logs requests in a PostgreSQL DB. It responds with the unique ID of the request.
+  iconUrl: https://billglover.me/img/bill.dev.png
+  tags:
+  - go
+  - http
+  - database
+  imports:
+    - name: tap-workload
+  options:
+  - name: dbClassClaim
+    inputType: text
+    label: The name of the class-claim for a PostreSQL DB
+    defaultValue: db-pgsql-bitnami
+  - name: goVersion
+    inputType: select
+    label: Go version
+    choices:
+    - value: "1.20"
+      text: "1.20"
+    - value: "1.19"
+      text: "1.19"
+    - value: "1.18"
+      text: "1.18"
+    defaultValue: "1.20"
+    required: true
+engine:
+  merge:
+  - include: ["**/*"]
+    exclude: ["config/*.yaml", "go.mod", ".*", "**/*.go", "README.md"]
+  - include: [ "catalog/*.yaml" ]
+    chain:
+    - type: ReplaceText
+      substitutions:
+      - text: "tanzu-go-hellodb"
+        with: "#artifactId.toLowerCase()"
+    - type: ReplaceText
+      substitutions:
+      - text: "{{CLASS_CLAIM}}"
+        with: "#dbClassClaim"
+  - include: [ "**/*.go" ]
+    chain:
+    - type: ReplaceText
+      substitutions:
+      - text: "tanzu-go-hellodb"
+        with: "#artifactId.toLowerCase()"
+  - include: [ "config/*.yaml" ]
+    chain:
+    - type: ReplaceText
+      substitutions:
+      - text: "tanzu-go-hellodb"
+        with: "#artifactId.toLowerCase()"
+    - type: ReplaceText
+      substitutions:
+      - text: "{{CLASS_CLAIM}}"
+        with: "#dbClassClaim"
+    - merge:
+      - type: InvokeFragment
+        reference: tap-workload
+      - include: [ "**" ]
+      onConflict: UseFirst
+
+  - include: ["go.mod"]
+    chain:
+    - type: ReplaceText
+      regex:
+        pattern: '1\.20'
+        with: "#goVersion"
+    - type: ReplaceText
+      regex:
+        pattern: 'tanzu-go-hellodb'
+        with: "#artifactId.toLowerCase()"
+
+  - include: ["README.md"]
